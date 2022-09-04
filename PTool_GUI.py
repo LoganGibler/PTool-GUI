@@ -1,13 +1,18 @@
+from encodings import utf_8
 import tkinter as tk
 from tkinter import *
 import random
 import sys
 import string
 import re
-from hashlib import md5, sha1, sha224, sha256, sha384, sha512
-# import paramiko 
+from hashlib import md5, sha1, sha224, sha256, sha384, sha512 
 import time
 import socket
+import math
+from unicodedata import decimal
+import sys
+from functools import reduce
+import base64
 
 # global vars
 special_characters = """!@#$%^&*()-+?_=,<>/"""
@@ -45,22 +50,9 @@ def grade():
         length_grade = 1
     if len(password) >= 12:
         length_grade += 1
-    # if uppercount == 0:
-    #         print("Password needs an uppercase letter :(")
-    # if lowercount == 0:
-    #         print("Password needs a lowercase letter :(")
-    
-    # if len(password) < 8:
-    #     print("Ensure password is at least 8 characters long :(")
-    # else:
-    #     print("Password has sufficient length :)") #more specific, ie 8-11 characters weak, 12-14 moderate, 15+ strong
-
     
     if any(char in special_characters for char in password):
         specialcharcount = 1
-        # print("Password has special characters :)")
-    # else:
-    #     # print("Needs at least 1-2 special characters")
 
     pass_grade = length_grade + specialcharcount + numbercount + uppercount + lowercount
   
@@ -182,7 +174,7 @@ def timecrack():
         time_ = "years"
 
     if time_ == "years" and speed > 100:
-        speed = speed/ 100
+        speed = speed / 100
         time_ = "centuries"
 
     if time_ == "centuries" and speed > 1000:
@@ -220,20 +212,24 @@ def hashpass():
 def comparepassword():
     resultbox.delete(1.0, END)
     password = inputbox.get()
-    file1 = open("LeakedPasswords.txt", "r")
-    readfile = file1.read()
-    if password in readfile:
-        resultbox.insert(1.0, 'You chose -->',password + ".", '\nThis password is compromised. Please choose again.')
-        # print('You chose -->',password + ".", '\nThis password is compromised. Please choose again.')
-    else:
-        resultbox.insert(1.0, 'You chose -->', password , '\nThis password was not found')
-        # print('You chose -->', password , '\nThis password was not found')
-    file1.close()
+    wordlist = open("rockyou_clean.txt", "r", encoding="utf-8")
+    count = 0
+    for word in wordlist:
+        word = word.strip()
+        if word == password:
+            resultbox.insert(1.0, "This password is leaked. Please use a different password.")
+            count = 1
+            break
+    
+    if count == 0:
+        resultbox.insert(1.0, "This password is not leaked.")
+
+    wordlist.close()
 
 def crackhash():
     resultbox.delete(1.0, END)
     passHash = inputbox.get()
-    wordList = open("LeakedPasswords.txt","r")
+    wordList = open("rockyou_clean.txt","r", encoding="utf-8")
     count = 0
 
     if len(passHash) == 32:
@@ -296,10 +292,94 @@ def crackhash():
                 count = 1
                 break
 
-
     if count == 0:
         resultbox.insert(1.0, "Password not found")
         # print("Password not found")
+    wordList.close()
+
+def hex_encrypt():
+    resultbox.delete(1.0, END)
+    input_data = inputbox.get()
+    result = []
+    for character in input_data:
+        modified_string = hex(ord(character)).replace("0x", "")
+        if len(modified_string) == 1: modified_string = "0" + modified_string;
+        result.append(modified_string)
+        # print(result)
+    resultbox.insert(1.0, result)
+
+def hex_decrypt():
+    resultbox.delete(1.0, END)
+    input_data = inputbox.get()
+    result = ""
+    byte_array = bytearray.fromhex(input_data)
+    result = byte_array.decode()
+    resultbox.insert(1.0, result)
+
+def decryptb64_data(input_data):
+        decrypted_word = base64.b64decode(input_data)
+        unbyted_word = decrypted_word.decode()
+        # print(unbyted_word)
+        return unbyted_word
+# decrypt_data(data1)
+
+def encryptb64_data():
+    resultbox.delete(1.0, END)
+    input_data = inputbox.get()
+    byted_word = bytes(input_data, "utf-8")
+    encrypted_word = base64.b64encode(byted_word)
+    unbyted_b64 = encrypted_word.decode()
+    resultbox.insert(1.0, unbyted_b64)
+    
+
+def decryption():
+    resultbox.delete(1.0, END)
+    input_data = inputbox.get()
+    decrypted_data = ""
+    if input_data[-1] == "=":
+        decrypted_data = decryptb64_data(input_data)
+        resultbox.insert(1.0, decrypted_data)
+    elif len(input_data) % 4 != 1:
+        decrypted_data = decryptb64_data(input_data)
+        resultbox.insert(1.0, decrypted_data)
+    
+def binary_encrypt(input_data):
+    formatted_binary = ""
+    binary = ""
+    byte_word = input_data.encode("utf-8")
+    for character in byte_word:
+        binary_num = bin(character)
+        binary += binary_num
+    for character in binary:
+        if character != "b":
+            formatted_binary += character
+
+    return formatted_binary
+
+def binary_decrypt(input_data):
+
+    def BinaryToDecimal(binary):
+        string = int(binary, 2)
+        return string
+    
+    str_data = " "
+
+    for i in range(0, len(input_data), 8):
+        temp_data = input_data[i:i + 8]
+        decimal_data = BinaryToDecimal(temp_data)
+        str_data = str_data + chr(decimal_data) 
+    
+    return str_data
+
+def binary_encoding():
+    resultbox.delete(1.0, END)
+    input_data = inputbox.get()
+    if input_data[4] == "0" or input_data[4] == "1":
+        result = binary_decrypt(input_data)
+    else:
+        result = binary_encrypt(input_data)
+
+    resultbox.insert(1.0, result)
 
 def input_clear(e):
     if inputbox.get() == "Insert password or hash here-":
@@ -308,41 +388,54 @@ def input_clear(e):
 root.title("PTool") 
 title = tk.Label(root, text="PTool", bg="black", fg="Blue", font=("Helvetica", 56))
 title.pack()
-titlewindow = canvas.create_window(300, 120, window=title)
+titlewindow = canvas.create_window(300, 60, window=title)
 # input box
 inputbox=Entry(root, width=40, bg="white", font=("Helvetica", 14), bd=0)
 inputbox.pack()
 inputbox.insert(0, "Insert password or hash here-")
-inputboxwindow = canvas.create_window(300, 200, window=inputbox)
+inputboxwindow = canvas.create_window(300, 120, window=inputbox)
 
 # result box
 resultbox = Text(root, width=65, height=17, font=("Helvetica", 12))
 resultbox.pack()
-resultboxwindow = canvas.create_window(300, 400, window=resultbox)
+resultboxwindow = canvas.create_window(300, 354, window=resultbox)
 
 # buttons
-checkbutton = Button(root, text="Grade", font=("Helvetica"), bg="grey", command=grade)
-checkbutton_window = canvas.create_window(317,230, window=checkbutton)
+checkbutton = Button(root, text = "Grade", font=("Helvetica"), bg="grey", command=grade)
+checkbutton_window = canvas.create_window(317,150, window=checkbutton)
 
-generatebutton = Button(root,text="Generate", font=("Helvetica"), bg="grey", command=generate)
-generatebutton_window = canvas.create_window(250,230, window=generatebutton)
+generatebutton = Button(root,text = "Generate", font=("Helvetica"), bg="grey", command=generate)
+generatebutton_window = canvas.create_window(250,150, window=generatebutton)
 
-checkhashbutton = Button(root,text="Analyze Hash", font=("Helvetica"), bg="grey", command=hashtype)
-checkhashbutton_window = canvas.create_window(161,230, window=checkhashbutton)
+checkhashbutton = Button(root, text = "Analyze Hash", font=("Helvetica"), bg="grey", command=hashtype)
+checkhashbutton_window = canvas.create_window(161,150, window=checkhashbutton)
 
-crackhashbutton = Button(root,text="Crack Hash", font=("Helvetica",), bg="grey", command=crackhash)
-crackhashbutton_window = canvas.create_window(394,230, window=crackhashbutton)
+crackhashbutton = Button(root, text = "Crack Hash", font=("Helvetica",), bg="grey", command=crackhash)
+crackhashbutton_window = canvas.create_window(394,150, window=crackhashbutton)
 
-comparepassbutton = Button(root,text="Vulnerability Check", font=("Helvetica", 12), bg="grey", command=comparepassword)
-comparepassbutton_window = canvas.create_window(515,230, window=comparepassbutton)
+comparepassbutton = Button(root, text = "Vulnerability Check", font=("Helvetica", 12), bg="grey", command=comparepassword)
+comparepassbutton_window = canvas.create_window(515,150, window=comparepassbutton)
 
+timecrackbutton = Button(root, text = "Time2Crack", font = ("Helvetica", 12), bg="grey", command=timecrack)
+timecrackbutton_window = canvas.create_window(57,150, window=timecrackbutton)
 
-timecrackbutton = Button(root,text="Time2Crack", font=("Helvetica", 12), bg="grey", command=timecrack)
-timecrackbutton_window = canvas.create_window(59,230, window=timecrackbutton)
+hashpassbutton = Button(root, text = "Hash Password", font = ("Helvetica", 12), bg="grey", command=hashpass)
+hashpassbutton_window = canvas.create_window(68,182, window=hashpassbutton)
 
-hashpassbutton = Button(root,text="Hash Password", font=("Helvetica", 12), bg="grey", command=hashpass)
-hashpassbutton_window = canvas.create_window(75,572, window=hashpassbutton)
+hex_encryptbutton = Button(root, text = "Encrypt2Hex", font = ("Helvetiva", 12), bg="grey", command=hex_encrypt)
+hex_encryptbutton_window = canvas.create_window(181, 182, window=hex_encryptbutton)
 
+hex_decryptbutton = Button(root, text = "DecryptHex2Text", font = ("Helvetiva", 12), bg="grey", command=hex_decrypt)
+hex_decryptbutton_window = canvas.create_window(298, 182, window=hex_decryptbutton)
+
+b64_encode_button = Button(root, text = "Base64ToText", font = ("Helvetiva", 12), bg="grey", command=decryption)
+b64_encode_window = canvas.create_window(423, 182, window=b64_encode_button)
+
+b64_decode_button = Button(root, text = "TextToBase64", font = ("Helvetiva", 12), bg="grey", command=encryptb64_data)
+b64_decode_window = canvas.create_window(539, 182, window=b64_decode_button)
+
+binary_encode_button = Button(root, text = "Binary", font = ("Helvetiva", 12), bg="grey", command=binary_encoding)
+binary_encode_window = canvas.create_window(36, 527, window=binary_encode_button)
 
 inputbox.bind("<Button-1>", input_clear)
 
